@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Route, Switch, Redirect, useHistory } from "react-router-dom";
+import { Route, Switch, useHistory } from "react-router-dom";
 import "../index.css";
 import Header from "./Header";
 import Register from "./Register";
@@ -48,6 +48,32 @@ function App() {
     setIsInfoTooltipOpen(false);
   };
 
+  useEffect(() => {
+    if (isLoggedIn) {
+      api
+        .getUserInfoFromApi()
+        .then((user) => {
+          setCurrentUser(user);
+        })
+        .catch((err) => `Ошибка получения данных пользователя : ${err}`);
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      api
+        .getCardsFromApi()
+        .then((cards) => {
+          setCards(cards);
+        })
+        .catch((err) => `Ошибка получения карточек: ${err}`);
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    checkToken();
+  }, []);
+
   const handelCloseAllPopup = (evt) => {
     if (
       evt.type === "keydown" ||
@@ -57,15 +83,6 @@ function App() {
       closeAllPopups();
     }
   };
-
-  useEffect(() => {
-    api
-      .getUserInfoFromApi()
-      .then((user) => {
-        setCurrentUser(user);
-      })
-      .catch((err) => `Ошибка получения данных пользователя : ${err}`);
-  }, []);
 
   const handleUpdateUser = (user) => {
     api
@@ -86,15 +103,6 @@ function App() {
       })
       .catch((err) => `Ошибка редактирования аватара профиля: ${err}`);
   };
-
-  useEffect(() => {
-    api
-      .getCardsFromApi()
-      .then((cards) => {
-        setCards(cards);
-      })
-      .catch((err) => `Ошибка получения карточек: ${err}`);
-  }, []);
 
   const handleCardLike = (card) => {
     const isLiked = card.likes.some((item) => item._id === currentUser._id);
@@ -128,14 +136,10 @@ function App() {
       .catch((err) => `Ошибка связанная с загрузкой новой карточки: ${err}`);
   };
 
-  useEffect(() => {
-    checkToken();
-  }, []);
-
   const handleRegister = (password, email) => {
     auth
       .register(password, email)
-      .then(() => {        
+      .then(() => {
         history.push("/signin");
         setMassage({
           text: "Вы успешно зарегистрировались!",
@@ -147,9 +151,9 @@ function App() {
           text: "Что-то пошло не так! Попробуйте ещё раз.",
           imgPath: unSuccessImg,
         });
-        return (err == 400) 
-        ? console.log('Ошибка 400 - некорректно заполнено одно из полей')
-        : console.log(`Ошибка ${err}`);
+        return err == 400
+          ? console.log("Ошибка 400 - некорректно заполнено одно из полей")
+          : console.log(`Ошибка ${err}`);
       })
       .finally(() => setIsInfoTooltipOpen(true));
   };
@@ -158,23 +162,27 @@ function App() {
     auth
       .authorize(password, email)
       .then((data) => {
-        auth.getToken(data.token)
-        .then((res) => {
+        auth.getToken(data.token).then((res) => {
           setIsLoggedIn(true);
-          history.push("/");          
+          history.push("/");
         });
       })
       .catch((err) => {
+        setMassage({
+          text: "Что-то пошло не так! Попробуйте ещё раз.",
+          imgPath: unSuccessImg,
+        });
+        setIsInfoTooltipOpen(true);
         switch (err) {
-          case (400):
-            console.log('Ошибка 400 - не передано одно из полей');
+          case 400:
+            console.log("Ошибка 400 - не передано одно из полей");
             break;
-          case (401):
-            console.log('Ошибка 401 - пользователь с email не найден ');
+          case 401:
+            console.log("Ошибка 401 - пользователь с email не найден ");
             break;
           default:
-            console.log(`Ошибка ${err}`)
-        };
+            console.log(`Ошибка ${err}`);
+        }
       });
   };
 
@@ -190,7 +198,7 @@ function App() {
         })
         .catch((err) => console.log(err));
     }
-  };  
+  };
 
   const signOut = () => {
     localStorage.removeItem("token");
